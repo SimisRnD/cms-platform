@@ -61,6 +61,7 @@ class ContentEditorBridge {
     }
 
     tinymce.init({
+    license_key: 'gpl',
       selector: '#content-html-editor',
       branding: false,
       width: '100%',
