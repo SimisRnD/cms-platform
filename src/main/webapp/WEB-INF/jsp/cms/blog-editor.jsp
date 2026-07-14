@@ -25,6 +25,7 @@
 <web:script package="tinymce" file="tinymce.min.js" />
 <script>
   tinymce.init({
+    license_key: 'gpl',
     selector: '.html-field',
     branding: false,
     width: '100%',

@@ -1667,6 +1667,7 @@ class PropertiesPanel {
       
       // Initialize TinyMCE on this textarea
       tinymce.init({
+    license_key: 'gpl',
         target: textarea,
         inline: false,
         menubar: false,

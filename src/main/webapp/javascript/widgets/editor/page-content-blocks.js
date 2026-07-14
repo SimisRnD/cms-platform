@@ -233,6 +233,7 @@ class PageContentBlocksManager {
     }
 
     tinymce.init({
+    license_key: 'gpl',
       selector: '#content-block-html-editor',
       branding: false,
       width: '100%',

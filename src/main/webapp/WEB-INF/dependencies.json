@@ -202,7 +202,7 @@
       ]
     },
     "tinymce": {
-      "version": "6.8.6",
+      "version": "7.9.3",
       "paths": [
         "node_modules/tinymce/tinymce.js",
         "node_modules/tinymce/tinymce.min.js",
