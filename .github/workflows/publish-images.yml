@@ -1,0 +1,51 @@
+# Builds SimIS's OWN container images from this repository and publishes them
+# to the org's GitHub Container Registry (ghcr.io/<owner>), so deployments no
+# longer depend on an external/personal registry. Uses the built-in
+# GITHUB_TOKEN -- no personal credentials are involved.
+name: Publish container images
+
+on:
+  workflow_dispatch:      # allow manual runs (needed for the first publish)
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build the web application (.war)
+        run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      - name: Lowercase the registry owner (ghcr requires lowercase)
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push the app image
+        run: |
+          IMG="ghcr.io/${OWNER}/cms-platform"
+          docker build -f docker/app/Dockerfile -t "${IMG}:latest" -t "${IMG}:${GITHUB_SHA}" .
+          docker push "${IMG}:latest"
+          docker push "${IMG}:${GITHUB_SHA}"
+
+      - name: Build and push the database image
+        run: |
+          IMG="ghcr.io/${OWNER}/cms-platform-db"
+          docker build -f docker/db/Dockerfile -t "${IMG}:latest" -t "${IMG}:${GITHUB_SHA}" docker/db
+          docker push "${IMG}:latest"
+          docker push "${IMG}:${GITHUB_SHA}"
