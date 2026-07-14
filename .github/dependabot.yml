@@ -10,3 +10,11 @@ updates:
    directory: "/"
    schedule:
      interval: weekly
+ # Watch container base images so base-image CVEs get flagged/patched:
+ # docker/app/Dockerfile (tomcat) and docker/db/Dockerfile (postgres + PostGIS)
+ - package-ecosystem: "docker"
+   directories:
+     - "/docker/app"
+     - "/docker/db"
+   schedule:
+     interval: weekly
