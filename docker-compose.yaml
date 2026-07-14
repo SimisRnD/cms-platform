@@ -1,7 +1,7 @@
 services:
 
   db:
-    image: ghcr.io/rajkowski/cms-platform-db:15
+    image: ghcr.io/simisrnd/cms-platform-db:latest
     env_file:
       .env
     environment:
@@ -14,7 +14,7 @@ services:
       - db-data:/var/lib/postgresql/data:delegated
 
   app:
-    image: ghcr.io/rajkowski/cms-platform:1
+    image: ghcr.io/simisrnd/cms-platform:latest
     ports:
       - 80:8080
     env_file:
