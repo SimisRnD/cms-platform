@@ -18,3 +18,8 @@ updates:
      - "/docker/db"
    schedule:
      interval: weekly
+   ignore:
+     # Tomcat 10+ moves the servlet API from javax.* to jakarta.* (breaking);
+     # hold major base-image bumps until the Jakarta EE migration is done.
+     - dependency-name: "tomcat"
+       update-types: ["version-update:semver-major"]
