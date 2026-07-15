@@ -14,6 +14,7 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write   # upload the image scan results to code scanning
 
 jobs:
   publish:
@@ -36,16 +37,66 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Build and push the app image
+      - name: Build the app image
         run: |
           IMG="ghcr.io/${OWNER}/cms-platform"
           docker build -f docker/app/Dockerfile -t "${IMG}:latest" -t "${IMG}:${GITHUB_SHA}" .
+
+      # Dependabot watches our declared dependencies and the base image tags,
+      # but nothing inspects what actually ends up inside the built layers.
+      # Trivy scans the image we are about to publish, so OS package CVEs
+      # surface in the Security tab alongside the CodeQL findings.
+      - name: Scan the app image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ env.OWNER }}/cms-platform:${{ github.sha }}
+          format: sarif
+          output: trivy-app.sarif
+          severity: CRITICAL,HIGH
+          # Without this, the SARIF ignores the severity filter above and
+          # reports every finding regardless.
+          limit-severities-for-sarif: true
+          # Report only. The tomcat base image carries OS CVEs we do not
+          # control, so failing the publish on day one would just block
+          # releases. Once the baseline is known and triaged, raise this to
+          # '1' to fail on new CRITICAL/HIGH findings.
+          exit-code: '0'
+
+      - name: Upload the app image scan results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-app.sarif
+          category: trivy-app
+
+      - name: Push the app image
+        run: |
+          IMG="ghcr.io/${OWNER}/cms-platform"
           docker push "${IMG}:latest"
           docker push "${IMG}:${GITHUB_SHA}"
 
-      - name: Build and push the database image
+      - name: Build the database image
         run: |
           IMG="ghcr.io/${OWNER}/cms-platform-db"
           docker build -f docker/db/Dockerfile -t "${IMG}:latest" -t "${IMG}:${GITHUB_SHA}" docker/db
+
+      - name: Scan the database image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ env.OWNER }}/cms-platform-db:${{ github.sha }}
+          format: sarif
+          output: trivy-db.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          exit-code: '0'
+
+      - name: Upload the database image scan results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-db.sarif
+          category: trivy-db
+
+      - name: Push the database image
+        run: |
+          IMG="ghcr.io/${OWNER}/cms-platform-db"
           docker push "${IMG}:latest"
           docker push "${IMG}:${GITHUB_SHA}"

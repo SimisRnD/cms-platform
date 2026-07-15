@@ -10,6 +10,12 @@ updates:
    directory: "/"
    schedule:
      interval: weekly
+ # Keep workflow action versions current. A pinned action that nobody bumps
+ # eventually breaks or is retired, and the failure is easy to miss.
+ - package-ecosystem: "github-actions"
+   directory: "/"
+   schedule:
+     interval: weekly
  # Watch container base images so base-image CVEs get flagged/patched:
  # docker/app/Dockerfile (tomcat) and docker/db/Dockerfile (postgres + PostGIS)
  - package-ecosystem: "docker"
