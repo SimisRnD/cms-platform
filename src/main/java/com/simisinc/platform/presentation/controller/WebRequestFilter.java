@@ -189,6 +189,13 @@ public class WebRequestFilter implements Filter {
         // Replace "http://" with "https://"
         String requestURL = httpServletRequest.getRequestURL().toString();
         requestURL = Strings.CS.replace(requestURL, "http://", "https://");
+        // The request URL is built from the client-supplied Host header, so it is only echoed back when the
+        // hostname is named by an allow list. Otherwise prefer the configured site, because the allow list is
+        // empty unless an operator created hostname-allow-list.csv, and an empty list vouches for nothing.
+        String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+        if (siteUrl != null && !HostnameCommand.isExplicitlyAllowed(request.getServerName())) {
+          requestURL = Strings.CS.removeEnd(siteUrl, "/") + requestURI;
+        }
         LOG.debug("Redirecting to: " + requestURL);
         do301(servletResponse, requestURL);
         return;
