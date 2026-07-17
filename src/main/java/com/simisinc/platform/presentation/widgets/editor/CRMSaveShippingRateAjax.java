@@ -107,6 +107,9 @@ public class CRMSaveShippingRateAjax extends GenericJsonService {
       rateBean.setCountryCode(countryCode);
       rateBean.setRegion(region);
       rateBean.setPostalCode(postalCode);
+      if (shippingMethodId > Integer.MAX_VALUE || shippingMethodId < Integer.MIN_VALUE) {
+        throw new DataException("A valid shipping method is required");
+      }
       rateBean.setShippingMethodId((int) shippingMethodId);
       rateBean.setDisplayText(displayText);
 
