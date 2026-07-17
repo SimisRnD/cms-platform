@@ -194,7 +194,7 @@ public class WebRequestFilter implements Filter {
         // empty unless an operator created hostname-allow-list.csv, and an empty list vouches for nothing.
         String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
         if (siteUrl != null && !HostnameCommand.isExplicitlyAllowed(request.getServerName())) {
-          requestURL = Strings.CS.removeEnd(siteUrl, "/") + requestURI;
+          requestURL = Strings.CS.removeEnd(siteUrl, "/") + safeRedirectPath(requestURI);
         }
         LOG.debug("Redirecting to: " + requestURL);
         do301(servletResponse, requestURL);
@@ -537,6 +537,31 @@ public class WebRequestFilter implements Filter {
     */
 
     chain.doFilter(request, servletResponse);
+  }
+
+  /**
+   * Restricts a request path so it can only ever be appended to the configured site URL as an absolute path on that
+   * site. This keeps the path from changing the host of the redirect (a protocol-relative "//host" or a backslash
+   * variant) or from splitting the response header (an embedded control character). Anything unexpected collapses to
+   * the site root.
+   *
+   * @param requestURI the request path from HttpServletRequest.getRequestURI()
+   * @return the same path when it is a plain absolute path, otherwise "/"
+   */
+  static String safeRedirectPath(String requestURI) {
+    // Must be an absolute path; reject protocol-relative ("//host") and backslash variants a browser reads as a host
+    if (requestURI == null || !requestURI.startsWith("/") || requestURI.startsWith("//")
+        || requestURI.startsWith("/\\")) {
+      return "/";
+    }
+    // Reject control characters, including the CR and LF that could split the response header
+    for (int i = 0; i < requestURI.length(); i++) {
+      char c = requestURI.charAt(i);
+      if (c < 0x20 || c == 0x7f) {
+        return "/";
+      }
+    }
+    return requestURI;
   }
 
   private void do301(ServletResponse servletResponse, String redirectLocation) throws IOException {
