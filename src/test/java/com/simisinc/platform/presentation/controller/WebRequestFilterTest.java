@@ -64,6 +64,10 @@ class WebRequestFilterTest {
   }
 
   private HttpServletRequest httpRequestOverPlainHttp(String hostHeader) {
+    return httpRequestOverPlainHttp(hostHeader, "/about");
+  }
+
+  private HttpServletRequest httpRequestOverPlainHttp(String hostHeader, String requestURI) {
     ServletContext servletContext = mock(ServletContext.class);
     when(servletContext.getContextPath()).thenReturn("");
 
@@ -71,11 +75,11 @@ class WebRequestFilterTest {
     when(request.getScheme()).thenReturn("http");
     when(request.getMethod()).thenReturn("GET");
     when(request.getServletContext()).thenReturn(servletContext);
-    when(request.getRequestURI()).thenReturn("/about");
+    when(request.getRequestURI()).thenReturn(requestURI);
     when(request.getRemoteAddr()).thenReturn("203.0.113.9");
     // getServerName() and getRequestURL() are both derived from the Host header by the container
     when(request.getServerName()).thenReturn(hostHeader);
-    when(request.getRequestURL()).thenReturn(new StringBuffer("http://" + hostHeader + "/about"));
+    when(request.getRequestURL()).thenReturn(new StringBuffer("http://" + hostHeader + requestURI));
     return request;
   }
 
@@ -158,5 +162,46 @@ class WebRequestFilterTest {
 
       verify(response).setHeader("Location", "https://intranet.example.com/about");
     }
+  }
+
+  @Test
+  void sslRedirectCollapsesAProtocolRelativePathToTheSiteRoot() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(SITE_URL);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      // A protocol-relative path would otherwise produce https://www.example.com//evil.example.net
+      filter.doFilter(httpRequestOverPlainHttp("evil.example.net", "//evil.example.net/path"), response, chain);
+
+      verify(response).setHeader("Location", SITE_URL + "/");
+    }
+  }
+
+  @Test
+  void safeRedirectPathAllowsAPlainAbsolutePath() {
+    org.junit.jupiter.api.Assertions.assertEquals("/about", WebRequestFilter.safeRedirectPath("/about"));
+    org.junit.jupiter.api.Assertions.assertEquals("/a/b/c.html", WebRequestFilter.safeRedirectPath("/a/b/c.html"));
+  }
+
+  @Test
+  void safeRedirectPathRejectsHostChangingAndSplittingPaths() {
+    // Protocol-relative and backslash variants a browser would read as a host
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath("//evil.example.net"));
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath("/\\evil.example.net"));
+    // Not an absolute path
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath("evil"));
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath(null));
+    // Embedded CR/LF that could split the response header
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath("/a\r\nSet-Cookie: x=y"));
+    org.junit.jupiter.api.Assertions.assertEquals("/", WebRequestFilter.safeRedirectPath("/a\nb"));
   }
 }
