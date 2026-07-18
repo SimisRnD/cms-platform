@@ -67,7 +67,7 @@ public class SaveItemFilePartCommand {
 
       LOG.debug("Found a file...");
       submittedFilename = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
-      extension = FilenameUtils.getExtension(submittedFilename);
+      extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
       tempFile = new File(serverCompletePath + uniqueFilename + "." + extension);
 
       LOG.debug("Writing file " + fileLength + " bytes");
@@ -99,8 +99,9 @@ public class SaveItemFilePartCommand {
     if (fileItemBean == null) {
       return;
     }
-    File tempFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
-    if (tempFile.exists()) {
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
+    File tempFile = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+    if (tempFile != null && tempFile.exists()) {
       LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
       tempFile.delete();
     }

@@ -61,8 +61,9 @@ public class ProcessBlockListCSVFileCommand {
       if (fileItemBean == null) {
         throw new DataException("Valid file not found");
       }
-      File csvFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
-      if (!csvFile.exists()) {
+      String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
+      File csvFile = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+      if (csvFile == null || !csvFile.exists()) {
         throw new DataException("Valid file not found");
       }
 
