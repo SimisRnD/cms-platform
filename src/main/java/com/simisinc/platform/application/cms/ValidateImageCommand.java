@@ -48,8 +48,9 @@ public class ValidateImageCommand {
   public static void checkFile(Image imageBean) throws DataException {
 
     // Get a file handle
-    File imageFile = FileSystemCommand.getFileServerRootPath(imageBean.getFileServerPath());
-    if (!imageFile.exists()) {
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
+    File imageFile = FileSystemCommand.resolveWithinRoot(serverRootPath, imageBean.getFileServerPath());
+    if (imageFile == null || !imageFile.exists()) {
       return;
     }
 

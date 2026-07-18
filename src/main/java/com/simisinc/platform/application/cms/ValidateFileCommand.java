@@ -41,9 +41,10 @@ public class ValidateFileCommand {
   public static void checkFile(FileItem fileItemBean) {
 
     // Get a file handle
-    File file = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
-    if (!file.exists()) {
-      LOG.warn("File does not exist: " + file.getPath());
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
+    File file = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+    if (file == null || !file.exists()) {
+      LOG.warn("File does not exist: " + fileItemBean.getFileServerPath());
       return;
     }
 
@@ -68,9 +69,10 @@ public class ValidateFileCommand {
   public static void checkFile(ItemFileItem fileItemBean) {
 
     // Get a file handle
-    File file = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
-    if (!file.exists()) {
-      LOG.warn("File does not exist: " + file.getPath());
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
+    File file = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+    if (file == null || !file.exists()) {
+      LOG.warn("File does not exist: " + fileItemBean.getFileServerPath());
       return;
     }
 

@@ -109,7 +109,7 @@ public class ImageUploadAjax extends GenericJsonService {
           submittedFilename = Strings.CS.replace(submittedFilename, "mceclip0", "clip");
         }
 
-        String extension = FilenameUtils.getExtension(submittedFilename);
+        String extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
         String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
         File tempFile = null;
         long fileLength = 0;

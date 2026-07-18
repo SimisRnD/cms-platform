@@ -181,4 +181,31 @@ public class FileSystemCommandTest {
       Assertions.assertNull(FileSystemCommand.getFileChecksum(missing));
     }
   }
+
+  @Test
+  void testCleanExtension() {
+    // Normal extensions pass through unchanged
+    Assertions.assertEquals("jpg", FileSystemCommand.cleanExtension("jpg"));
+    Assertions.assertEquals("PNG", FileSystemCommand.cleanExtension("PNG"));
+    // Null or blank input yields an empty token, never null
+    Assertions.assertEquals("", FileSystemCommand.cleanExtension(null));
+    Assertions.assertEquals("", FileSystemCommand.cleanExtension(""));
+    // Path separators and traversal sequences cannot survive
+    Assertions.assertEquals("jpgetcpasswd", FileSystemCommand.cleanExtension("jpg/../etc/passwd"));
+    Assertions.assertEquals("png", FileSystemCommand.cleanExtension("png\\..\\.."));
+    Assertions.assertEquals("", FileSystemCommand.cleanExtension("../.."));
+  }
+
+  @Test
+  void testResolveWithinRoot() {
+    String root = "." + File.separator;
+    // A normal path resolves to a File inside the root
+    Assertions.assertNotNull(FileSystemCommand.resolveWithinRoot(root, "uploads/file.txt"));
+    // Traversal that escapes the root is rejected
+    Assertions.assertNull(FileSystemCommand.resolveWithinRoot(root, "../../etc/passwd"));
+    // Blank root or null path is rejected
+    Assertions.assertNull(FileSystemCommand.resolveWithinRoot(null, "file.txt"));
+    Assertions.assertNull(FileSystemCommand.resolveWithinRoot("", "file.txt"));
+    Assertions.assertNull(FileSystemCommand.resolveWithinRoot(root, null));
+  }
 }
